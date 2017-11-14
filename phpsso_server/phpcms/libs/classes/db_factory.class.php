@@ -70,8 +70,7 @@ final class db_factory {
 				$object = new mysql();
 				break;
 			case 'mysqli' :
-				pc_base::load_sys_class('db_mysqli', '', 0);
-				$object = new db_mysqli();
+				$object = pc_base::load_sys_class('db_mysqli');
 				break;
 			case 'access' :
 				$object = pc_base::load_sys_class('db_access');

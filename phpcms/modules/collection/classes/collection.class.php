@@ -91,7 +91,7 @@ class collection {
 							if ($out[1][$k] == '#') continue;
 							$v = self::url_check($v, $url, $config);
 							$results = self::get_content($v, $config, 1);
-							if (!in_array($results['content'], $tmp) && $results['content']!="") $tmp[] = $results['content'];
+							if (!in_array($results['content'], $tmp)) $tmp[] = $results['content'];
 						}
 					}
 					
@@ -102,7 +102,7 @@ class collection {
 			if ($page == 0) {
 				self::$url = $url;
 				self::$config = $config;
-				$data['content'] = preg_replace_callback('/<img[^>]*src=[\'"]?([^>\'"\s]*)[\'"]?[^>]*>/i', array('collection','download_img_callback'), $data['content']);
+				$data['content'] = preg_replace_callback('/<img[^>]*src=[\'"]?([^>\'"\s]*)[\'"]?[^>]*>/i', "self::download_img_callback", $data['content']);	
 				//下载内容中的图片到本地
 				if (empty($page) && !empty($data['content']) && $config['down_attachment'] == 1) {
 					
