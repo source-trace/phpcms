@@ -179,9 +179,9 @@ class index extends foreground {
 						$message = str_replace(array('{click}','{url}','{username}','{email}','{password}'), array('<a href="'.$url.'">'.L('please_click').'</a>',$url,$userinfo['username'],$userinfo['email'],$password), $message);
  						sendmail($userinfo['email'], L('reg_verify_email'), $message);
 						//设置当前注册账号COOKIE，为第二步重发邮件所用
-						param::set_cookie('_regusername', $userinfo['username'], $cookietime);
-						param::set_cookie('_reguserid', $userid, $cookietime);
-						param::set_cookie('_reguseruid', $userinfo['phpssouid'], $cookietime);
+						$_SESSION['_regusername'] = $userinfo['username'];
+						$_SESSION['_reguserid'] = $userid;
+						$_SESSION['_reguseruid'] = $userinfo['phpssouid'];
 						showmessage(L('operation_success'), 'index.php?m=member&c=index&a=register&t=2');
 					} else {
 						//如果不需要邮箱认证、直接登录其他应用
@@ -265,14 +265,21 @@ class index extends foreground {
 	 * 测试邮件配置
 	 */
 	public function send_newmail() {
-		$_username = param::get_cookie('_regusername');
-		$_userid = param::get_cookie('_reguserid');
-		$_ssouid = param::get_cookie('_reguseruid');
+		$this->_session_start();	
+		$_username = $_SESSION['_regusername'];
+		$_userid = $_SESSION['_reguserid'];
+		$_ssouid = $_SESSION['_reguseruid'];
 		$newemail = $_GET['newemail'];
 
-		if($newemail==''){//邮箱为空，直接返回错误
+		if($newemail=='' || !is_email($newemail)){//邮箱为空，直接返回错误
 			return '2';
 		}
+		//验证userid和username是否匹配
+		$r = $this->db->get_one(array('userid'=>intval($_userid)));
+		if($r[username]!=$_username){
+			return '2';
+		}
+		
 		$this->_init_phpsso();
 		$status = $this->client->ps_checkemail($newemail);
 		if($status=='-5'){//邮箱被占用
@@ -1486,7 +1493,10 @@ class index extends foreground {
 			if ($_SESSION['code'] != strtolower($_POST['code'])) {
 				showmessage(L('code_error'), HTTP_REFERER);
 			}
-			
+			//邮箱验证
+			if(!is_email($_POST['email'])){
+				showmessage(L('email_error'), HTTP_REFERER);
+			}
 			$memberinfo = $this->db->get_one(array('email'=>$_POST['email']));
 			if(!empty($memberinfo['email'])) {
 				$email = $memberinfo['email'];
@@ -1627,6 +1637,10 @@ class index extends foreground {
 			if ($_SESSION['code'] != strtolower($_POST['code'])) {
 				showmessage(L('code_error'), HTTP_REFERER);
 			}
+			//验证
+			if(!is_username($_POST['username'])){
+				showmessage(L('username_format_incorrect'), HTTP_REFERER);
+			}
 			$username = safe_replace($_POST['username']);
 
 			$r = $this->db->get_one(array('username'=>$username),'userid,mobile');
@@ -1693,6 +1707,10 @@ class index extends foreground {
 		//处理提交申请，以手机号为准
 			if ($_SESSION['code'] != strtolower($_POST['code'])) {
 				showmessage(L('code_error'), HTTP_REFERER);
+			}
+			//验证
+			if(!is_username($_POST['username'])){
+				showmessage(L('username_format_incorrect'), HTTP_REFERER);
 			}
 			$username = safe_replace($_POST['username']);
 

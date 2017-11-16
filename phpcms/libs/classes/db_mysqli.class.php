@@ -4,7 +4,7 @@
  *
  * @copyright			(C) 2005-2015 PHPCMS
  * @license				http://www.phpcms.cn/license/
- * @lastmodify			2015-09-06
+ * @lastmodify			2016-02-01
  */
 
 final class db_mysqli {
@@ -52,17 +52,15 @@ final class db_mysqli {
 	 * @return void
 	 */
 	public function connect() {
-		
 		$this->link = new mysqli($this->config['hostname'], $this->config['username'], $this->config['password'], $this->config['database'], $this->config['port']?intval($this->config['port']):3306);
-
-		if(mysqli_connect_errno()){
+		if(mysqli_connect_error()){
 			$this->halt('Can not connect to MySQL server');
 			return false;
 		}
 		if($this->version() > '4.1') {
 			$charset = isset($this->config['charset']) ? $this->config['charset'] : '';
-			$this->link->set_charset($charset);
-			$serverset = $this->version() > '5.0.1' ? 'sql_mode=\'\'' : '';
+			$serverset = $charset ? "character_set_connection='$charset',character_set_results='$charset',character_set_client=binary" : '';
+			$serverset .= $this->version() > '5.0.1' ? ((empty($serverset) ? '' : ',')." sql_mode='' ") : '';
 			$serverset && $this->link->query("SET $serverset");
 		}
 		return $this->link;
@@ -77,7 +75,7 @@ final class db_mysqli {
 		if(!is_object($this->link)) {
 			$this->connect();
 		}
-		$this->lastqueryid = $this->link->query($sql) or $this->halt(mysqli_error(), $sql);
+		$this->lastqueryid = $this->link->query($sql) or $this->halt($this->link->error, $sql);
 		$this->querycount++;
 		return $this->lastqueryid;
 	}
@@ -105,7 +103,6 @@ final class db_mysqli {
 		$sql = 'SELECT '.$data.' FROM `'.$this->config['database'].'`.`'.$table.'`'.$where.$group.$order.$limit;
 		$this->execute($sql);
 		if(!is_object($this->lastqueryid)) {
-			echo "ccccccc";
 			return $this->lastqueryid;
 		}
 
@@ -210,6 +207,9 @@ final class db_mysqli {
 	 * @return int 
 	 */
 	public function insert_id() {
+		if(!is_object($this->link)) {
+			$this->connect();
+		}
 		return $this->link->insert_id;
 	}
 	
@@ -288,6 +288,9 @@ final class db_mysqli {
 	 * @return int
 	 */
 	public function affected_rows() {
+		if(!is_object($this->link)) {
+			$this->connect();
+		}
 		return $this->link->affected_rows;
 	}
 	
@@ -381,11 +384,17 @@ final class db_mysqli {
 	}
 
 	public function error() {
-		return (($this->link) ? $this->link->error : mysqli_error());
+		if(!is_object($this->link)) {
+			$this->connect();
+		}
+		return $this->link->error;
 	}
 
 	public function errno() {
-		return intval(($this->link) ? $this->link->errno : mysqli_errno());
+		if(!is_object($this->link)) {
+			$this->connect();
+		}
+		return intval($this->link->errno);
 	}
 
 	public function version() {

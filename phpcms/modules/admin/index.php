@@ -42,7 +42,9 @@ class index extends admin {
 				}
 				$username = $_SESSION['card_username'] ? $_SESSION['card_username'] :  showmessage(L('nameerror'),HTTP_REFERER);
 			}
-			
+			if(!is_username($username)){
+				showmessage(L('username_illegal'), HTTP_REFERER);
+			}
 			//密码错误剩余重试次数
 			$this->times_db = pc_base::load_model('times_model');
 			$rtime = $this->times_db->get_one(array('username'=>$username,'isadmin'=>1));
